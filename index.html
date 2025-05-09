@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>码农通关记 - 毕业小游戏</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background-color: #f0f8ff;
+      margin: 0;
+      padding: 0;
+    }
+    #game-container {
+      padding: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>🎓 码农通关记</h1>
+    <div id="stage"></div>
+    <div id="controls"></div>
+  </div>
+
+  <canvas id="grad-canvas" width="600" height="400" style="display: none;"></canvas>
+
+  <script>
+    let stage = 1;
+    let gameActive = false; // 防止通关后仍然继续运行
+
+    function nextStage() {
+      stage++;
+      gameActive = false;
+      loadStage();
+    }
+
+    function loadStage() {
+      const stageDiv = document.getElementById('stage');
+      const controls = document.getElementById('controls');
+      stageDiv.innerHTML = '';
+      controls.innerHTML = '';
+
+      if (stage === 1) {
+        stageDiv.innerHTML = '<h2>选专业</h2>';
+        const majors = ['哲学', '法学', '网络安全', '人工智能', '会计'];
+        const correct = ['网络安全', '人工智能'];
+        majors.sort(() => Math.random() - 0.5);
+        majors.forEach(major => {
+          const btn = document.createElement('button');
+          btn.textContent = major;
+          btn.onclick = () => {
+            if (correct.includes(major)) nextStage();
+            else alert('选错了，请重试！');
+          };
+          controls.appendChild(btn);
+        });
+      }
+
+      else if (stage === 2) {
+        stageDiv.innerHTML = '<h2>期末逃亡</h2><p>用左右键或滑动控制小人避开障碍物</p>';
+        startCanvasGame();
+      }
+
+      else if (stage === 3) {
+        stageDiv.innerHTML = '<h2>抢实验室名额</h2>';
+        setTimeout(() => {
+          const btn = document.createElement('button');
+          btn.textContent = '立即报名';
+          const startTime = Date.now();
+          btn.onclick = () => {
+            const reaction = Date.now() - startTime;
+            alert(`反应时间：${reaction} 毫秒`);
+            nextStage();
+          };
+          controls.appendChild(btn);
+        }, Math.random() * 2000 + 1000);
+      }
+
+      else if (stage === 4) {
+        stageDiv.innerHTML = '<h2>毕业大合照</h2><p>点击生成毕业证书</p>';
+        const nameInput = document.createElement('input');
+        nameInput.placeholder = '输入你的名字';
+        nameInput.style.margin = '10px';
+        controls.appendChild(nameInput);
+        const genBtn = document.createElement('button');
+        genBtn.textContent = '生成证书';
+        genBtn.onclick = () => generateCertificate(nameInput.value || '匿名');
+        controls.appendChild(genBtn);
+      }
+
+      else {
+        stageDiv.innerHTML = '<h2>🎉 恭喜你完成游戏！</h2><p>愿你代码无Bug，前程似锦！</p>';
+      }
+    }
+
+    function startCanvasGame() {
+      const canvas = document.getElementById('grad-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.style.display = 'block';
+      let playerX = 280;
+      const width = canvas.width, height = canvas.height;
+      let obstacles = [{x: Math.random()*560, y: 0}];
+      gameActive = true;
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(playerX, 350, 40, 40);
+        ctx.fillStyle = 'red';
+        obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, 40, 40));
+      }
+
+      function update() {
+        if (!gameActive) return;
+        obstacles.forEach(obs => obs.y += 1);
+        obstacles = obstacles.filter(obs => obs.y < 400);
+        if (Math.random() < 0.01) obstacles.push({x: Math.random() * 560, y: 0});
+        for (const obs of obstacles) {
+          if (obs.y > 310 && obs.x < playerX + 40 && obs.x + 40 > playerX) {
+            alert('撞上了！重来本关');
+            gameActive = false;
+            stage--;
+            loadStage();
+            return;
+          }
+        }
+      }
+
+      function loop() {
+        if (gameActive) {
+          update();
+          draw();
+          requestAnimationFrame(loop);
+        }
+      }
+
+      document.addEventListener('keydown', e => {
+        if (!gameActive) return;
+        if (e.key === 'ArrowLeft') playerX = Math.max(0, playerX - 20);
+        if (e.key === 'ArrowRight') playerX = Math.min(560, playerX + 20);
+      });
+
+      loop();
+      setTimeout(() => {
+        if (gameActive) {
+          alert('你成功逃过期末周！');
+          gameActive = false;
+          canvas.style.display = 'none';
+          nextStage();
+        }
+      }, 7000);
+    }
+
+    function generateCertificate(name) {
+      const canvas = document.getElementById('grad-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.style.display = 'block';
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, 600, 400);
+      ctx.fillStyle = '#000';
+      ctx.font = '24px Arial';
+      ctx.fillText('计算机学院 2025届 毕业证书', 150, 80);
+      ctx.fillText(`恭喜：${name}`, 200, 150);
+      ctx.fillText('成功完成《码农通关记》毕业挑战', 120, 200);
+      ctx.fillText('愿你代码无bug，前程似锦！', 150, 280);
+
+      const link = document.createElement('a');
+      link.download = `${name}_毕业证书.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+
+    loadStage();
+  </script>
+</body>
+</html>
